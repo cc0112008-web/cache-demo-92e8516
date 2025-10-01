@@ -16,7 +16,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
           
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -25,7 +24,6 @@ jobs:
           path: |
             ~/.npm
             node_modules
-            **/node_modules
           key: cache-92e8516-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             cache-92e8516-${{ runner.os }}-
@@ -34,24 +32,32 @@ jobs:
       - name: Install dependencies
         run: |
           if [ -f package.json ]; then
-            npm ci
+            if [ "${{ steps.npm-cache.outputs.cache-hit }}" != 'true' ]; then
+              echo "Installing dependencies..."
+              npm ci
+            else
+              echo "Dependencies restored from cache"
+            fi
           else
             echo "No package.json found, creating sample one"
-            echo '{"name": "cache-demo", "version": "1.0.0"}' > package.json
-            npm install lodash
+            echo '{"name": "cache-demo", "version": "1.0.0", "dependencies": {"lodash": "^4.17.21"}}' > package.json
+            echo '{"name": "cache-demo", "version": "1.0.0", "dependencies": {"lodash": "^4.17.21"}}' > package-lock.json
+            npm install
           fi
           
       - name: prime-cache-92e8516
+        id: prime-cache
         run: |
-          if steps.npm-cache.outputs.cache-hit == 'true'; then
-            echo "🚀 Cache hit! Dependencies restored from cache"
-            echo "Cache key: ${{ steps.npm-cache.outputs.cache-primary-key }}"
+          echo "Checking cache status..."
+          if [ "${{ steps.npm-cache.outputs.cache-hit }}" == 'true' ]; then
+            echo "✅ Cache HIT for key: ${{ steps.npm-cache.outputs.cache-primary-key }}"
+            echo "result=cache-hit" >> $GITHUB_OUTPUT
           else
-            echo "⚡ Cache miss! Dependencies will be cached for next run"
-            echo "New cache key: ${{ steps.npm-cache.outputs.cache-primary-key }}"
+            echo "❌ Cache MISS - new cache created with key: ${{ steps.npm-cache.outputs.cache-primary-key }}"
+            echo "result=cache-miss" >> $GITHUB_OUTPUT
           fi
           
-      - name: Run tests
+      - name: Verify cache step
         run: |
-          echo "Running tests with cached dependencies..."
-          node -e "console.log('Node.js working with cached deps')"
+          echo "prime-cache-92e8516 step completed with result: ${{ steps.prime-cache.outputs.result }}"
+          echo "Cache primary key: ${{ steps.npm-cache.outputs.cache-primary-key }}"
