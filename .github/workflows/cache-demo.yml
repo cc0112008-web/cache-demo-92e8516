@@ -1,0 +1,57 @@
+name: Cache Demo Workflow
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  cache-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        id: npm-cache
+        with:
+          path: |
+            ~/.npm
+            node_modules
+            **/node_modules
+          key: cache-92e8516-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            cache-92e8516-${{ runner.os }}-
+            cache-92e8516-
+            
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm ci
+          else
+            echo "No package.json found, creating sample one"
+            echo '{"name": "cache-demo", "version": "1.0.0"}' > package.json
+            npm install lodash
+          fi
+          
+      - name: prime-cache-92e8516
+        run: |
+          if steps.npm-cache.outputs.cache-hit == 'true'; then
+            echo "🚀 Cache hit! Dependencies restored from cache"
+            echo "Cache key: ${{ steps.npm-cache.outputs.cache-primary-key }}"
+          else
+            echo "⚡ Cache miss! Dependencies will be cached for next run"
+            echo "New cache key: ${{ steps.npm-cache.outputs.cache-primary-key }}"
+          fi
+          
+      - name: Run tests
+        run: |
+          echo "Running tests with cached dependencies..."
+          node -e "console.log('Node.js working with cached deps')"
