@@ -1,0 +1,16 @@
+{
+  "name": "cache-demo-92e8516",
+  "version": "1.0.0",
+  "description": "Demo repository for GitHub Actions caching",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Tests passed\""
+  },
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
